@@ -109,7 +109,7 @@ class Citizen(Agent):
         if self.breed == "citizen" and self.moral_state == "Corrupted":
             if len(self.neighbors) > 1:
                   if self.moral_state == "Corrupted": 
-                           
+                           #added that agent has to be quiescent to become susceptible; it wouldn't make sense that a rebel becomes corrupt
                             susceptible_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
                                                      and a.moral_state =="Susceptible" and a.condition == "Quiescent"]
                             honest_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
