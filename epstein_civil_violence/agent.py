@@ -43,6 +43,11 @@ class Citizen(Agent):
         vision,
         is_employed,
         moral_state,
+        corruption_transmission_prop = 0.06,
+        honest_transmission_prop = 0.02
+        
+        
+      
     ):
         """
         Create a new Citizen.
@@ -76,6 +81,9 @@ class Citizen(Agent):
         self.arrest_probability = None
         self.is_employed = is_employed
         self.moral_state = moral_state
+        self.corruption_transmission_prop = corruption_transmission_prop
+        self.honest_transmission_prop = corruption_transmission_prop
+        
     def step(self):
         """
         Decide whether to activate, then move if applicable.
@@ -104,28 +112,52 @@ class Citizen(Agent):
         if self.model.movement and self.empty_neighbors:
             new_pos = self.random.choice(self.empty_neighbors)
             self.model.grid.move_agent(self, new_pos)
+        
+        susceptible_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
+                                                     and a.moral_state =="Susceptible" and a.condition == "Quiescent"]
+        honest_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
+                                                     and a.moral_state =="Honest"]
+        corrupted_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
+                                                     and a.moral_state =="Corrupted"]
+        employed_non_corrupted = [a for a in self.neighbors if a.breed == "citizen" 
+                                                     and a.moral_state !="Corrupted" and a.is_employed == 1 ]
+        total_susceptible = self.model.count_moral_type_citizens(
+                                            self.model,moral_condition="Susceptible", exclude_jailed=False)
+        total_corrupted= self.model.count_moral_type_citizens(self.model,moral_condition="Corrupted",exclude_jailed=False)
+        total_honest = self.model.count_moral_type_citizens(
+                                            self.model,moral_condition="Honest", exclude_jailed=False)
             
         #code by Nadir, i just changed the corruption spreading probabilites, so it spreads in a more realistic way
         if self.breed == "citizen" and self.moral_state == "Corrupted":
             if len(self.neighbors) > 1:
                   if self.moral_state == "Corrupted": 
                            #added that agent has to be quiescent to become susceptible; it wouldn't make sense that a rebel becomes corrupt
-                            susceptible_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
-                                                     and a.moral_state =="Susceptible" and a.condition == "Quiescent"]
-                            honest_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
-                                                     and a.moral_state =="Honest"]
-                            corrupted_neighbors = [a for a in self.neighbors if a.breed == "citizen" 
-                                                     and a.moral_state =="Corrupted"]
-                            employed_non_corrupted = [a for a in self.neighbors if a.breed == "citizen" 
-                                                     and a.moral_state !="Corrupted" and a.is_employed == 1 ]
+                          
+                            ## only spread corruption if the current corruption saturation < max_corruption_saturation. 
+                            
+                                
+                            
+                                    if len(susceptible_neighbors) > 0:
+
+                                        corr_prop = self.corruption_transmission_prop * (total_corrupted /  total_honest)
+                                        target_neighbor = self.random.choice(susceptible_neighbors) 
+                                        if target_neighbor.is_employed == 1 and self.random.random() < corr_prop or target_neighbor.is_employed == 0 and self.random.random() < corr_prop*0.1:
+                                            
+                                                  if self.model.get_corrupted_saturation(self.model,False) < self.model.max_corruption_saturation:
+                                                      target_neighbor.moral_state = "Corrupted"
+                                                  if len(employed_non_corrupted) > 0 and self.random.random() < 0.009 and target_neighbor.is_employed == 0:
+                                                        victim_neighbor = self.random.choice(employed_non_corrupted) 
+                                                        victim_neighbor.is_employed = 0
+                                                        target_neighbor.is_employed = 1
+        if self.breed == "citizen" and self.moral_state == "Honest":
+            
+            if len(self.neighbors) > 1:
+                            
                             if len(susceptible_neighbors) > 0:
                                 target_neighbor = self.random.choice(susceptible_neighbors)
-                                if target_neighbor.is_employed == 1 and self.random.random() < 0.009 or target_neighbor.is_employed == 0 and self.random.random() < 0.09:
-                                          target_neighbor.moral_state = "Corrupted"
-                                          if len(employed_non_corrupted) > 0 and self.random.random() < 0.009:
-                                                victim_neighbor = self.random.choice(employed_non_corrupted) 
-                                                victim_neighbor.is_employed = 0
-                                                target_neighbor.is_employed = 1
+                                if  self.random.random() < self.honest_transmission_prop and self.model.get_honest_saturation(self.model,False) < self.model.max_honest_saturation:
+                                          target_neighbor.moral_state = "Honest"
+                                          
                                            
 
     def update_neighbors(self):
@@ -187,6 +219,18 @@ class Citizen(Agent):
         ):
             self.is_employed=0
                       
+    def update_hardship_grievance_threshold(self):
+        """
+        If agent becomes unemployed hardship, thershold and grievance get updated.
+
+        """             
+        
+        if(
+            self.is_employed==0
+        ):
+            self.hardship=self.random.random()-(self.is_employed*self.random.uniform(0.05,0.15))
+            self.grievance = self.hardship * (1 - self.regime_legitimacy)
+            threshold=self.active_threshold+(self.is_employed*self.random.uniform(0.05,0.15))
     def update_hardship_grievance_threshold(self):
         """
         If agent becomes unemployed hardship, thershold and grievance get updated.

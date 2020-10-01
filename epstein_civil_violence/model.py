@@ -48,8 +48,11 @@ class EpsteinCivilViolence(Model):
         movement=True,
         initial_unemployment_rate = 0.1,
         corruption_level = 0.1,
-        susceptible_level = 0.3,
         honest_level = 0.6,
+        corruption_transmission_prop = 0.06,
+        honest_transmission_prop = 0.02,
+        max_corruption_saturation = 0.45,
+        max_honest_saturation = 0.35,
         max_iters=1000,
     ):
 
@@ -67,10 +70,15 @@ class EpsteinCivilViolence(Model):
         self.movement = movement
         self.initial_unemployment_rate = initial_unemployment_rate
         self.corruption_level = corruption_level
-        self.susceptible_level = susceptible_level
+        self.honest_level = honest_level,
+        self.susceptible_level = 1 - (corruption_level + honest_level)
         self.max_iters = max_iters
         self.iteration = 0
         self.schedule = RandomActivation(self)
+        self.corruption_transmission_prop = corruption_transmission_prop
+        self.honest_transmission_prop = honest_transmission_prop
+        self.max_corruption_saturation = max_corruption_saturation
+        self.max_honest_saturation = max_honest_saturation
         self.grid = Grid(height, width, torus=True)
         model_reporters = {
             "Quiescent": lambda m: self.count_type_citizens(m, "Quiescent"),
@@ -122,7 +130,6 @@ class EpsteinCivilViolence(Model):
                 elif p < self.corruption_level + self.susceptible_level:                   
                    moral_state = "Susceptible"
                    
-                
                 citizen = Citizen(
                     unique_id,
                     self,
@@ -139,6 +146,7 @@ class EpsteinCivilViolence(Model):
                     vision=self.citizen_vision,
                     is_employed=is_employed,
                     moral_state = moral_state,
+                    corruption_transmission_prop = self.corruption_transmission_prop,
                 )
                 unique_id += 1
                 self.grid[y][x] = citizen
@@ -172,6 +180,39 @@ class EpsteinCivilViolence(Model):
             if agent.condition == condition:
                 count += 1
         return count
+    
+    @staticmethod
+    def get_corrupted_saturation(model, exclude_jailed=False):
+        """
+        Helper method to count agents by Quiescent/Active.
+        """
+        corr_count = 0
+        total_count = 0
+        for agent in model.schedule.agents:
+            if agent.breed == "cop":
+                continue
+            if exclude_jailed and agent.jail_sentence:
+                continue
+            if agent.moral_state == "Corrupted":
+                corr_count += 1
+            total_count +=1
+        return corr_count/total_count
+    @staticmethod
+    def get_honest_saturation(model, exclude_jailed=False):
+        """
+        Helper method to count agents by Quiescent/Active.
+        """
+        corr_count = 0
+        total_count = 0
+        for agent in model.schedule.agents:
+            if agent.breed == "cop":
+                continue
+            if exclude_jailed and agent.jail_sentence:
+                continue
+            if agent.moral_state == "Honest":
+                corr_count += 1
+            total_count +=1
+        return corr_count/total_count
     @staticmethod
     def count_moral_type_citizens(model, moral_condition, exclude_jailed=False):
         """
