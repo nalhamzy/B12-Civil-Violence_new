@@ -205,6 +205,8 @@ class Citizen(Agent):
             and self.jail_sentence == 0
         ):
             self.regime_legitimacy = self.legitimacy-(corrupts_in_vision / (1+others_in_vision))
+            
+
 
     def update_employment_status(self):
         """
