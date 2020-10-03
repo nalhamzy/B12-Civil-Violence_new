@@ -49,11 +49,11 @@ class EpsteinCivilViolence(Model):
         initial_unemployment_rate = 0.1,
         corruption_level = 0.1,
         honest_level = 0.6,
-        corruption_transmission_prob = 0.06,
-        honest_transmission_prob = 0.02,
-        max_corruption_saturation = 0.45,
-        max_honest_saturation = 0.35,
-        max_unemployed_saturation = 0.45,
+        corruption_transmission_prob = 0.06, #corruption transmission probability on contact. 
+        honest_transmission_prob = 0.02,     #honest transmission probability on contact. 
+        max_corruption_saturation = 0.45, #determines the maximum number of corrupted agents at any step
+        max_honest_saturation = 0.35,     #determines the maximum number of honest agents at any step
+        max_unemployed_saturation = 0.45,  #determines the maximum number of unemployed agents at any step
         max_iters=1000,
     ):
 
