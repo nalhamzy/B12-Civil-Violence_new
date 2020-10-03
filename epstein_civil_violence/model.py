@@ -53,6 +53,7 @@ class EpsteinCivilViolence(Model):
         honest_transmission_prop = 0.02,
         max_corruption_saturation = 0.45,
         max_honest_saturation = 0.35,
+        max_unemployed_saturation = 0.45,
         max_iters=1000,
     ):
 
@@ -79,6 +80,8 @@ class EpsteinCivilViolence(Model):
         self.honest_transmission_prop = honest_transmission_prop
         self.max_corruption_saturation = max_corruption_saturation
         self.max_honest_saturation = max_honest_saturation
+        self.max_unemployed_saturation = max_unemployed_saturation
+ 
         self.grid = Grid(height, width, torus=True)
         model_reporters = {
             "Quiescent": lambda m: self.count_type_citizens(m, "Quiescent"),

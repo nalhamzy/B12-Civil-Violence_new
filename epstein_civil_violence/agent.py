@@ -166,11 +166,11 @@ class Citizen(Agent):
                                           target_neighbor.moral_state = "Honest"
                                           
         ### randomly assign/take agents job                                   
-        if self.breed == "citizen" and self.is_employed == 1 and self.model.get_unemployed_saturation(self.model,False) < 0.38: 
+        if self.breed == "citizen" and self.is_employed == 1 and self.model.get_unemployed_saturation(self.model,False) < self.model.max_unemployed_saturation: 
             if self.random.random() < self.random.uniform(0.0,0.09) * self.model.get_corrupted_saturation(self.model,False):
                 self.is_employed = 0
         elif self.breed == "citizen" and self.is_employed == 0: 
-            if self.random.random() < self.random.uniform(0.0,0.09) * self.model.get_honest_saturation(self.model,False):
+            if self.random.random() < self.random.uniform(0.0,0.009) * self.model.get_honest_saturation(self.model,False):
                 self.is_employed = 1
     def update_neighbors(self):
         """
