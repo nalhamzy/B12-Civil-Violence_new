@@ -43,8 +43,8 @@ class Citizen(Agent):
         vision,
         is_employed,
         moral_state,
-        corruption_transmission_prop = 0.06,
-        honest_transmission_prop = 0.02
+        corruption_transmission_prob = 0.06,
+        honest_transmission_prob = 0.02
         
         
       
@@ -81,8 +81,8 @@ class Citizen(Agent):
         self.arrest_probability = None
         self.is_employed = is_employed
         self.moral_state = moral_state
-        self.corruption_transmission_prop = corruption_transmission_prop
-        self.honest_transmission_prop = corruption_transmission_prop
+        self.corruption_transmission_prob = corruption_transmission_prob
+        self.honest_transmission_prob = corruption_transmission_prob
         
     def step(self):
         """
@@ -100,8 +100,8 @@ class Citizen(Agent):
         #update hardships, grievance and threshold (see definition below)
         #self.update_hardship_grievance_threshold()
         net_risk = self.risk_aversion * self.arrest_probability
-        w_unemployment = self.random.uniform(0.03,0.43)
-        w_corruption = self.random.uniform(0.01,0.03)
+        w_unemployment = self.random.uniform(0.01,0.39)
+        w_corruption = self.random.uniform(0.01,0.39)
         total_contribution = (w_unemployment * self.model.get_unemployed_saturation(self.model,True)) + (w_corruption * self.model.get_corrupted_saturation(self.model,True)) 
         if (
             self.condition == "Quiescent"
@@ -145,7 +145,7 @@ class Citizen(Agent):
                             
                                     if len(susceptible_neighbors) > 0:
 
-                                        corr_prop = self.corruption_transmission_prop *self.random.uniform(0.001,0.1)
+                                        corr_prop = self.corruption_transmission_prob *self.random.uniform(0.001,0.1)
                                         target_neighbor = self.random.choice(susceptible_neighbors) 
                                         if target_neighbor.is_employed == 1 and self.random.random() < corr_prop or target_neighbor.is_employed == 0 and self.random.random() < corr_prop + 0.07:
                                             
@@ -161,7 +161,7 @@ class Citizen(Agent):
                             
                             if len(susceptible_neighbors) > 0:
                                 target_neighbor = self.random.choice(susceptible_neighbors)
-                                honest_prop = self.honest_transmission_prop *self.random.uniform(0.01,0.1)
+                                honest_prop = self.honest_transmission_prob *self.random.uniform(0.01,0.1)
                                 if  self.random.random() < honest_prop and self.model.get_honest_saturation(self.model,False) < self.model.max_honest_saturation:
                                           target_neighbor.moral_state = "Honest"
                                           

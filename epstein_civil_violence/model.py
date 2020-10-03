@@ -49,8 +49,8 @@ class EpsteinCivilViolence(Model):
         initial_unemployment_rate = 0.1,
         corruption_level = 0.1,
         honest_level = 0.6,
-        corruption_transmission_prop = 0.06,
-        honest_transmission_prop = 0.02,
+        corruption_transmission_prob = 0.06,
+        honest_transmission_prob = 0.02,
         max_corruption_saturation = 0.45,
         max_honest_saturation = 0.35,
         max_unemployed_saturation = 0.45,
@@ -76,8 +76,8 @@ class EpsteinCivilViolence(Model):
         self.max_iters = max_iters
         self.iteration = 0
         self.schedule = RandomActivation(self)
-        self.corruption_transmission_prop = corruption_transmission_prop
-        self.honest_transmission_prop = honest_transmission_prop
+        self.corruption_transmission_prob = corruption_transmission_prob
+        self.honest_transmission_prob = honest_transmission_prob
         self.max_corruption_saturation = max_corruption_saturation
         self.max_honest_saturation = max_honest_saturation
         self.max_unemployed_saturation = max_unemployed_saturation
@@ -149,7 +149,7 @@ class EpsteinCivilViolence(Model):
                     vision=self.citizen_vision,
                     is_employed=is_employed,
                     moral_state = moral_state,
-                    corruption_transmission_prop = self.corruption_transmission_prop,
+                    corruption_transmission_prob = self.corruption_transmission_prob,
                 )
                 unique_id += 1
                 self.grid[y][x] = citizen
