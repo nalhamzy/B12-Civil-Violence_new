@@ -138,7 +138,7 @@ class EpsteinCivilViolence(Model):
                     hardship=self.random.random()-(is_employed*self.random.uniform(0.05,0.15)),
                     legitimacy=self.legitimacy,
                     #updated regime legitimacy, so inital corruption rate is taken into consideration
-                    regime_legitimacy=self.legitimacy-self.corruption_level,
+                    regime_legitimacy=self.legitimacy,#-self.corruption_level,
                     risk_aversion=self.random.random(),
                     active_threshold=self.active_threshold,
                     #updated threshold: if agent is employed threshold for rebelling is raised
@@ -182,6 +182,24 @@ class EpsteinCivilViolence(Model):
         return count
     
     @staticmethod
+    def get_unemployed_saturation(model, exclude_jailed=False):
+        """
+        Helper method to count agents by Quiescent/Active.
+        """
+        unempl_count = 0
+        total_count = 0
+        for agent in model.schedule.agents:
+            if agent.breed == "cop":
+                continue
+            if exclude_jailed and agent.jail_sentence:
+                continue
+            if agent.is_employed == 0:
+                unempl_count += 1
+            total_count +=1
+        return unempl_count/total_count
+
+    
+    @staticmethod
     def get_corrupted_saturation(model, exclude_jailed=False):
         """
         Helper method to count agents by Quiescent/Active.
@@ -202,7 +220,7 @@ class EpsteinCivilViolence(Model):
         """
         Helper method to count agents by Quiescent/Active.
         """
-        corr_count = 0
+        honest_count = 0
         total_count = 0
         for agent in model.schedule.agents:
             if agent.breed == "cop":
@@ -210,9 +228,9 @@ class EpsteinCivilViolence(Model):
             if exclude_jailed and agent.jail_sentence:
                 continue
             if agent.moral_state == "Honest":
-                corr_count += 1
+                honest_count += 1
             total_count +=1
-        return corr_count/total_count
+        return honest_count/total_count
     @staticmethod
     def count_moral_type_citizens(model, moral_condition, exclude_jailed=False):
         """

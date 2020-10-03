@@ -98,17 +98,21 @@ class Citizen(Agent):
         #update employment status each round (see definition below)
         self.update_employment_status()
         #update hardships, grievance and threshold (see definition below)
-        self.update_hardship_grievance_threshold()
+        #self.update_hardship_grievance_threshold()
         net_risk = self.risk_aversion * self.arrest_probability
+        w_unemployment = self.random.uniform(0.03,0.43)
+        w_corruption = self.random.uniform(0.01,0.03)
+        total_contribution = (w_unemployment * self.model.get_unemployed_saturation(self.model,True)) + (w_corruption * self.model.get_corrupted_saturation(self.model,True)) 
         if (
             self.condition == "Quiescent"
-            and (self.grievance - net_risk) > self.threshold
+            and (self.grievance - net_risk) > self.threshold - total_contribution  #- self.random.uniform(0.01,0.3)*(self.model.get_unemployed_saturation(self.model,False) + self.model.get_corrupted_saturation(self.model,False))
         ):
             self.condition = "Active"
         elif (
-            self.condition == "Active" and (self.grievance - net_risk) <= self.threshold
+            self.condition == "Active" and (self.grievance - net_risk) <= self.threshold - total_contribution
         ):
             self.condition = "Quiescent"
+            
         if self.model.movement and self.empty_neighbors:
             new_pos = self.random.choice(self.empty_neighbors)
             self.model.grid.move_agent(self, new_pos)
@@ -123,10 +127,12 @@ class Citizen(Agent):
                                                      and a.moral_state !="Corrupted" and a.is_employed == 1 ]
         total_susceptible = self.model.count_moral_type_citizens(
                                             self.model,moral_condition="Susceptible", exclude_jailed=False)
+        
         total_corrupted= self.model.count_moral_type_citizens(self.model,moral_condition="Corrupted",exclude_jailed=False)
         total_honest = self.model.count_moral_type_citizens(
                                             self.model,moral_condition="Honest", exclude_jailed=False)
-            
+         
+         
         #code by Nadir, i just changed the corruption spreading probabilites, so it spreads in a more realistic way
         if self.breed == "citizen" and self.moral_state == "Corrupted":
             if len(self.neighbors) > 1:
@@ -139,13 +145,13 @@ class Citizen(Agent):
                             
                                     if len(susceptible_neighbors) > 0:
 
-                                        corr_prop = self.corruption_transmission_prop * (total_corrupted /  total_honest)
+                                        corr_prop = self.corruption_transmission_prop *self.random.uniform(0.001,0.1)
                                         target_neighbor = self.random.choice(susceptible_neighbors) 
-                                        if target_neighbor.is_employed == 1 and self.random.random() < corr_prop or target_neighbor.is_employed == 0 and self.random.random() < corr_prop*0.1:
+                                        if target_neighbor.is_employed == 1 and self.random.random() < corr_prop or target_neighbor.is_employed == 0 and self.random.random() < corr_prop + 0.07:
                                             
                                                   if self.model.get_corrupted_saturation(self.model,False) < self.model.max_corruption_saturation:
                                                       target_neighbor.moral_state = "Corrupted"
-                                                  if len(employed_non_corrupted) > 0 and self.random.random() < 0.009 and target_neighbor.is_employed == 0:
+                                                  if len(employed_non_corrupted) > 0 and self.random.random() < 0.06 and target_neighbor.is_employed == 0:
                                                         victim_neighbor = self.random.choice(employed_non_corrupted) 
                                                         victim_neighbor.is_employed = 0
                                                         target_neighbor.is_employed = 1
@@ -155,11 +161,17 @@ class Citizen(Agent):
                             
                             if len(susceptible_neighbors) > 0:
                                 target_neighbor = self.random.choice(susceptible_neighbors)
-                                if  self.random.random() < self.honest_transmission_prop and self.model.get_honest_saturation(self.model,False) < self.model.max_honest_saturation:
+                                honest_prop = self.honest_transmission_prop *self.random.uniform(0.01,0.1)
+                                if  self.random.random() < honest_prop and self.model.get_honest_saturation(self.model,False) < self.model.max_honest_saturation:
                                           target_neighbor.moral_state = "Honest"
                                           
-                                           
-
+        ### randomly assign/take agents job                                   
+        if self.breed == "citizen" and self.is_employed == 1 and self.model.get_unemployed_saturation(self.model,False) < 0.38: 
+            if self.random.random() < self.random.uniform(0.0,0.09) * self.model.get_corrupted_saturation(self.model,False):
+                self.is_employed = 0
+        elif self.breed == "citizen" and self.is_employed == 0: 
+            if self.random.random() < self.random.uniform(0.0,0.09) * self.model.get_honest_saturation(self.model,False):
+                self.is_employed = 1
     def update_neighbors(self):
         """
         Look around and see who my neighbors are
@@ -204,8 +216,21 @@ class Citizen(Agent):
             self.moral_state!="Corrupted"
             and self.jail_sentence == 0
         ):
-            self.regime_legitimacy = self.legitimacy-(corrupts_in_vision / (1+others_in_vision))
+            C = self.model.count_moral_type_citizens(self.model, "Corrupted", exclude_jailed=True)
             
+            corruption_saturation = self.model.get_corrupted_saturation(self.model, exclude_jailed=True)
+            self.regime_legitimacy = self.legitimacy -(corrupts_in_vision / (1+others_in_vision))
+            unemployment_sat = self.model.get_unemployed_saturation(self.model, exclude_jailed=True) 
+            weight = self.random.uniform(0.3,0.4)* (unemployment_sat+ corruption_saturation)
+            
+            self.regime_legitimacy = self.legitimacy - weight  
+          #  print('*******')
+          #  net_risk = (self.risk_aversion * self.arrest_probability)
+           # print('regime_legitimacy %f'%self.regime_legitimacy)
+           # print('net risk %f'%(self.risk_aversion * self.arrest_probability))
+           # print('self.grievance %f'%self.grievance )
+           # print('condition %f'%(self.grievance - net_risk))
+           # print('Threshold %f'%(self.threshold))
 
 
     def update_employment_status(self):
@@ -219,7 +244,8 @@ class Citizen(Agent):
             and self.condition=="Active"
             or self.jail_sentence > 0
         ):
-            self.is_employed=0
+            self.is_employed=1
+            
                       
     def update_hardship_grievance_threshold(self):
         """
@@ -233,7 +259,7 @@ class Citizen(Agent):
             self.hardship=self.random.random()-(self.is_employed*self.random.uniform(0.05,0.15))
             self.grievance = self.hardship * (1 - self.regime_legitimacy)
             threshold=self.active_threshold+(self.is_employed*self.random.uniform(0.05,0.15))
-    def update_hardship_grievance_threshold(self):
+    def update_hardship_grievance_threshold2(self):
         """
         If agent becomes unemployed hardship, thershold and grievance get updated.
 
@@ -242,9 +268,9 @@ class Citizen(Agent):
         if(
             self.is_employed==0
         ):
-            self.hardship=self.random.random()-(self.is_employed*self.random.uniform(0.05,0.15))
+            #self.hardship=self.random.random()-(self.is_employed*self.random.uniform(0.05,0.15))
             self.grievance = self.hardship * (1 - self.regime_legitimacy)
-            threshold=self.active_threshold+(self.is_employed*self.random.uniform(0.05,0.15))
+            #threshold=self.active_threshold+(self.is_employed*self.random.uniform(0.05,0.15))
 
 class Cop(Agent):
     """
@@ -291,6 +317,7 @@ class Cop(Agent):
             arrestee = self.random.choice(active_neighbors)
             sentence = self.random.randint(0, self.model.max_jail_term)
             arrestee.jail_sentence = sentence
+            arrestee.condition = "Queit"
         if self.model.movement and self.empty_neighbors:
             new_pos = self.random.choice(self.empty_neighbors)
             self.model.grid.move_agent(self, new_pos)
